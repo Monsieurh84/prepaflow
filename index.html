@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="PrépaFlow — démo : saisie des prestations, fiche signée par l’agence, suivi des sites et facturation le jour même.">
+<meta name="theme-color" content="#0E9AA7">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%277%27 fill=%27%230E9AA7%27/%3E%3Cpath d=%27M9 22V10h7a4 4 0 0 1 0 8h-7%27 stroke=%27white%27 stroke-width=%273%27 fill=%27none%27/%3E%3C/svg%3E">
+<title>PrépaFlow pour 4GO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600;700&family=Overpass+Mono:wght@600;700&display=swap">
+<style>
+/* Concept : outil de terrain « parking & station de lavage » — asphalte, béton, eau, signalisation ; la fiche garde son quadrillage. */
+:root{
+  --bg:#ECEEF0; --surface:#FFFFFF; --surface-2:#F5F6F7; --line:#D9DDE1; --ink:#15181C; --mute:#5D6670;
+  --asphalt:#16191D; --asphalt-2:#22272D; --on-asphalt:#E9EDF0; --on-asphalt-mute:#9AA4AE;
+  --wash:#0E9AA7; --wash-soft:#DDF2F4; --signal:#E8A200; --signal-soft:#FFF3D6; --ok:#1E8E5A; --ok-soft:#E1F3EA; --stop:#C8372D; --stop-soft:#FBE5E3;
+  --plate-blue:#1E3E9C; --grid:#E3E8EC;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif; --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif; --f-mono:"Overpass Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1114; --surface:#181C20; --surface-2:#1F2429; --line:#2D343B; --ink:#E8ECEF; --mute:#9AA4AE;
+  --asphalt:#0A0C0E; --asphalt-2:#15191D; --on-asphalt:#E9EDF0; --on-asphalt-mute:#8C96A0;
+  --wash:#2BC0CC; --wash-soft:#123A3E; --signal:#F2B423; --signal-soft:#3A2F12; --ok:#3DBB7E; --ok-soft:#143326; --stop:#EE6157; --stop-soft:#3D1A17;
+  --plate-blue:#3557C9; --grid:#262C32; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1114; --surface:#181C20; --surface-2:#1F2429; --line:#2D343B; --ink:#E8ECEF; --mute:#9AA4AE;
+  --asphalt:#0A0C0E; --asphalt-2:#15191D; --on-asphalt:#E9EDF0; --on-asphalt-mute:#8C96A0;
+  --wash:#2BC0CC; --wash-soft:#123A3E; --signal:#F2B423; --signal-soft:#3A2F12; --ok:#3DBB7E; --ok-soft:#143326; --stop:#EE6157; --stop-soft:#3D1A17;
+  --plate-blue:#3557C9; --grid:#262C32; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--wash);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);letter-spacing:.01em;margin:0;text-wrap:balance;line-height:1.05}
+.tnum{font-variant-numeric:tabular-nums}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Barre du haut */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--asphalt);color:var(--on-asphalt)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:21;background:var(--asphalt)}
+.topbar .wrap{display:flex;align-items:center;gap:14px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.mark{width:34px;height:34px;border-radius:9px;background:var(--wash);display:grid;place-items:center;color:#fff}
+.mark svg{width:20px;height:20px}
+.brand b{font-family:var(--f-display);font-size:22px;letter-spacing:.02em}
+.brand small{display:block;color:var(--on-asphalt-mute);font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.tabs{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;color:var(--on-asphalt-mute);font-weight:700;padding:8px 12px;border-radius:8px;font-size:14px}
+.tabs button[aria-selected="true"]{background:var(--asphalt-2);color:var(--on-asphalt);box-shadow:inset 0 -3px 0 var(--wash)}
+.demo-note{background:var(--signal-soft);color:var(--ink);font-size:13px}
+.demo-note .wrap{padding-block:7px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.demo-note b{font-weight:700}
+
+main{padding-block:22px 48px}
+.view[hidden]{display:none!important}
+.i{width:1.1em;height:1.1em;vertical-align:-.18em;flex:none}
+
+/* Éléments communs */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.p-ok{background:var(--ok-soft);color:var(--ok)}.p-warn{background:var(--signal-soft);color:var(--ink)}.p-stop{background:var(--stop-soft);color:var(--stop)}.p-wash{background:var(--wash-soft);color:var(--wash)}.p-mute{background:var(--surface-2);color:var(--mute)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:10px;padding:11px 16px;font-weight:700}
+.b-main{background:var(--wash);color:#fff}.b-ghost{background:var(--surface-2);border:1px solid var(--line)}.b-dark{background:var(--asphalt);color:var(--on-asphalt)}
+.btn:disabled{opacity:.5;cursor:default}
+.plate{display:inline-flex;align-items:stretch;border:2px solid var(--ink);border-radius:5px;overflow:hidden;background:#fff;color:#111;font-family:var(--f-mono);font-weight:700;letter-spacing:.06em;line-height:1}
+.plate::before{content:"F";background:var(--plate-blue);color:#fff;font-family:var(--f-body);font-size:.62em;display:grid;place-items:center;padding:0 .35em;letter-spacing:0}
+.plate span{padding:.28em .45em}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;transition:.25s;background:var(--asphalt);color:var(--on-asphalt);padding:12px 16px;border-radius:12px;font-weight:600;z-index:50;max-width:calc(100% - 32px);display:flex;gap:10px;align-items:center;box-shadow:0 12px 30px rgba(0,0,0,.25)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.toast .i{color:var(--signal)}
+
+/* ===== Présentation ===== */
+.pitch{display:grid;grid-template-columns:1.25fr 1fr;gap:28px;align-items:start}
+.pitch h1{font-size:clamp(34px,5vw,56px);text-transform:uppercase;letter-spacing:.005em}
+.pitch h1 em{font-style:normal;color:var(--wash)}
+.pitch .lead{font-size:18px;color:var(--mute);max-width:60ch;margin:14px 0 18px}
+.ctas{display:flex;gap:10px;flex-wrap:wrap}
+.flow{display:grid;gap:8px}
+.flow .row{display:grid;grid-template-columns:120px 1fr 1fr;gap:10px;align-items:start;font-size:14px}
+.flow .row>div{padding:10px 12px;border-radius:10px;min-width:0}
+.flow .head{font-family:var(--f-display);font-size:15px;text-transform:uppercase;letter-spacing:.05em;color:var(--mute)}
+.flow .step{font-weight:700;padding-left:0!important}
+.flow .before{background:var(--stop-soft)}.flow .after{background:var(--ok-soft)}
+.flow .same{background:var(--surface-2)}
+.section-t{display:flex;align-items:baseline;gap:12px;margin:34px 0 14px;flex-wrap:wrap}
+.section-t h2{font-size:30px;text-transform:uppercase}
+.section-t p{margin:0;color:var(--mute)}
+.gains{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.gain h3{font-size:22px;margin:8px 0 4px}
+.gain p{margin:0;color:var(--mute);font-size:14px}
+.gain .i{width:26px;height:26px;color:var(--wash)}
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.calc label{display:block;font-weight:700;font-size:14px;margin:10px 0 4px}
+.calc input[type=range]{width:100%;accent-color:var(--wash)}
+.calc .val{float:right;font-family:var(--f-mono);font-weight:700}
+.big{font-family:var(--f-display);font-size:44px;font-weight:800;line-height:1}
+.big.ok{color:var(--ok)}
+.res{display:grid;gap:14px}
+.res .line{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding-bottom:10px}
+.pilot{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.pilot .card b{display:block;font-family:var(--f-display);font-size:20px;margin-bottom:4px}
+.pilot .card span{color:var(--mute);font-size:14px}
+.contact{margin-top:22px;background:var(--asphalt);color:var(--on-asphalt);border-radius:16px;padding:22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+.contact h3{font-size:28px;text-transform:uppercase}
+.contact p{margin:4px 0 0;color:var(--on-asphalt-mute)}
+.contact .tel{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.contact .num{font-family:var(--f-mono);font-size:20px;user-select:all;background:var(--asphalt-2);padding:8px 12px;border-radius:10px}
+
+/* ===== Préparateur (téléphone) ===== */
+.phone-stage{display:grid;grid-template-columns:420px 1fr;gap:28px;align-items:start}
+.device{background:var(--asphalt);border-radius:36px;padding:10px;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+.screen{background:var(--bg);border-radius:28px;overflow:hidden;display:flex;flex-direction:column;height:760px;position:relative}
+.ph-top{background:var(--asphalt);color:var(--on-asphalt);padding:18px 18px 14px}
+.ph-top h2{font-size:26px}
+.ph-top small{color:var(--on-asphalt-mute);font-weight:600}
+.ph-scroll{flex:1;overflow:auto;padding:14px;display:grid;gap:12px;align-content:start}
+.ph-nav{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.ph-nav button{border:0;background:none;padding:10px 4px 12px;font-size:12px;font-weight:700;color:var(--mute);display:grid;justify-items:center;gap:3px}
+.ph-nav button .i{width:22px;height:22px}
+.ph-nav button[aria-current="true"]{color:var(--wash)}
+.remind{background:var(--signal-soft);border:1px solid var(--signal);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:flex-start}
+.remind .i{width:22px;height:22px;color:var(--signal);margin-top:2px}
+.remind b{display:block}
+.badge-line{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.badge-line div{border-radius:10px;padding:8px 6px;text-align:center;background:var(--surface-2);font-size:12px;font-weight:700;color:var(--mute)}
+.badge-line div.done{background:var(--ok-soft);color:var(--ok)}
+.badge-line div.next{background:var(--wash-soft);color:var(--wash);outline:2px solid var(--wash)}
+.badge-line b{display:block;font-family:var(--f-mono);font-size:14px;color:var(--ink)}
+.counts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.counts div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.counts b{display:block;font-family:var(--f-display);font-size:28px}
+.counts span{font-size:12px;color:var(--mute);font-weight:600}
+.consigne{border-left:4px solid var(--wash);background:var(--surface);border-radius:10px;padding:10px 12px;font-size:14px}
+.consigne small{color:var(--mute);display:block;font-weight:600}
+.clock{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px}
+.clock button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-family:var(--f-mono);font-weight:700}
+.clock button[aria-pressed="true"]{border-color:var(--wash);color:var(--wash)}
+.field{display:grid;gap:6px}
+.field>span{font-weight:700;font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.06em}
+.field input,.field select,.field textarea{border:2px solid var(--line);border-radius:10px;padding:11px 12px;background:var(--surface);width:100%}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--wash)}
+.plate-input{display:flex;gap:8px;align-items:stretch}
+.plate-input .plate{flex:1;font-size:22px}
+.plate-input .plate input{border:0;background:transparent;width:100%;font:inherit;letter-spacing:inherit;color:#111;padding:.28em .45em;text-transform:uppercase}
+.plate-input .plate input:focus{outline:none}
+.cam{display:grid;place-items:center;width:56px;border-radius:10px;background:var(--asphalt);color:var(--on-asphalt);border:0}
+.cam .i{width:24px;height:24px}
+.presta{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.presta label{display:flex;align-items:center;gap:10px;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:12px;font-weight:700;cursor:pointer}
+.presta input{width:20px;height:20px;accent-color:var(--wash)}
+.presta label:has(input:checked){border-color:var(--wash);background:var(--wash-soft)}
+.presta small{display:block;font-weight:500;color:var(--mute);font-size:12px}
+.km{display:flex;gap:6px;flex-wrap:wrap}
+.km label{border:2px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;font-size:13px;cursor:pointer;background:var(--surface)}
+.km input{position:absolute;opacity:0;pointer-events:none}
+.km label:has(input:checked){border-color:var(--wash);background:var(--wash-soft)}
+.km[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.save{position:sticky;bottom:0;padding-top:6px}
+.save .btn{width:100%;padding:15px;font-size:17px}
+/* La fiche : quadrillage conservé */
+.sheet{background-color:var(--surface);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:14px 14px;border:1px solid var(--line);border-radius:12px;padding:12px;overflow-x:auto}
+.sheet table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:340px}
+.sheet th{font-family:var(--f-display);text-transform:uppercase;font-size:13px;letter-spacing:.05em;text-align:left;padding:4px 4px;border-bottom:2px solid var(--ink)}
+.sheet td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:middle;background:color-mix(in srgb,var(--surface) 82%,transparent)}
+.sheet td.c{text-align:center;font-weight:800}
+.sheet .plate{font-size:11px}
+.sheet tfoot td{font-weight:800;border-top:2px solid var(--ink)}
+.sig-wrap{border:2px dashed var(--line);border-radius:12px;background:var(--surface);touch-action:none}
+canvas#sig{width:100%;height:150px;display:block}
+.sent{background:var(--ok-soft);border:1px solid var(--ok);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center}
+.sent .i{width:24px;height:24px;color:var(--ok)}
+.week{display:grid;gap:8px}
+.week div{display:grid;grid-template-columns:80px 1fr auto;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}
+.week div.today{border-color:var(--wash);box-shadow:inset 4px 0 0 var(--wash)}
+.week div.changed{background:var(--signal-soft)}
+.week b{font-family:var(--f-display);font-size:16px;text-transform:uppercase}
+.side-explain{display:grid;gap:12px}
+.side-explain .card h3{font-size:22px;margin-bottom:6px}
+.side-explain .card p{margin:0;color:var(--mute)}
+
+
+/* ===== Préparateur : version « 3 gestes » ===== */
+.bigbadge{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:2px solid var(--line);background:var(--surface);border-radius:16px;padding:13px 14px;color:var(--ink)}
+.bigbadge.due{border-color:var(--signal);background:var(--signal-soft);animation:pulse 1.6s ease-in-out infinite}
+.bigbadge .i{width:28px;height:28px;color:var(--wash);flex:none}
+.bigbadge.due .i{color:var(--signal)}
+.bigbadge b{display:block;font-size:16.5px}
+.bigbadge small{color:var(--mute);font-size:13px}
+.bigbadge .dots{margin-left:auto;display:flex;gap:4px;flex:none}
+.bigbadge .dots i{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.bigbadge .dots i.on{background:var(--ok)}
+.bigbadge:disabled{cursor:default}
+@keyframes pulse{50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--signal) 22%,transparent)}}
+.addcar{width:100%;border:0;border-radius:20px;background:var(--wash);color:#fff;padding:18px 16px;display:grid;justify-items:center;gap:4px;box-shadow:0 10px 24px color-mix(in srgb,var(--wash) 35%,transparent);text-align:center}
+.addcar .pc{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.2);display:grid;place-items:center}
+.addcar .pc svg{width:30px;height:30px}
+.addcar b{font-family:var(--f-display);font-size:25px;text-transform:uppercase;letter-spacing:.02em}
+.addcar small{opacity:.9;font-size:13px}
+.addcar:active{transform:scale(.98)}
+.todayc{display:flex;align-items:center;gap:12px;padding:2px 2px}
+.todayc .n{font-family:var(--f-display);font-size:46px;font-weight:800;line-height:1;color:var(--ink)}
+.todayc span{font-weight:700;line-height:1.2}
+.todayc small{display:block;color:var(--mute);font-weight:500}
+.recent{display:grid;gap:6px}
+.recent div{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;flex-wrap:wrap}
+.recent .plate{font-size:11px}
+.recent time{margin-left:auto;color:var(--mute);font-family:var(--f-mono);font-size:12px}
+.pchip{display:inline-flex;padding:2px 8px;border-radius:999px;background:var(--wash-soft);color:var(--wash);font-weight:700;font-size:12px}
+.wiz{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wiz h3{font-size:27px;text-transform:uppercase}
+.wiz .back{border:1px solid var(--line);background:var(--surface);border-radius:10px;width:38px;height:38px;display:grid;place-items:center;font-size:18px;font-weight:800}
+.wiz .plate{font-size:15px}
+.wiz .mdl{color:var(--mute);font-size:13px;font-weight:600}
+.stepn{margin-left:auto;font-family:var(--f-mono);font-weight:700;color:var(--mute);font-size:13px}
+.progress{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.progress i{height:5px;border-radius:3px;background:var(--surface-2)}
+.progress i.on{background:var(--wash)}
+.scan{position:relative;overflow:hidden;width:100%;border:2px dashed var(--wash);background:var(--wash-soft);border-radius:18px;padding:26px 16px;display:grid;justify-items:center;gap:6px;color:var(--ink)}
+.scan .i{width:46px;height:46px;color:var(--wash)}
+.scan b{font-size:19px}
+.scan small{color:var(--mute)}
+.scan.busy b::after{content:" …"}
+.scan.busy::after{content:"";position:absolute;left:8%;right:8%;height:3px;border-radius:2px;background:var(--wash);box-shadow:0 0 14px var(--wash);top:14%;animation:scanl .45s ease-in-out infinite alternate}
+@keyframes scanl{to{top:84%}}
+.or{display:flex;align-items:center;gap:10px;color:var(--mute);font-size:13px;font-weight:600}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.plate.xl{display:flex;font-size:28px;width:100%}
+.plate.xl input{border:0;background:transparent;width:100%;font:inherit;letter-spacing:inherit;color:#111;padding:.28em .4em;text-transform:uppercase;text-align:center}
+.plate.xl input:focus{outline:none}
+.found{display:flex;gap:8px;align-items:center;justify-content:center;font-weight:700;color:var(--ok);font-size:15px}
+.found .i{width:20px;height:20px}
+.btn.xl{width:100%;padding:17px;font-size:18px;border-radius:14px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.tile{position:relative;border:2px solid var(--line);background:var(--surface);border-radius:16px;padding:13px 8px;display:grid;justify-items:center;align-content:center;gap:4px;font-weight:800;font-size:16px;color:var(--ink);min-height:92px;transition:transform .08s}
+.tile:active{transform:scale(.96)}
+.tile .i{width:30px;height:30px;color:var(--wash)}
+.tile small{font-weight:500;font-size:11.5px;color:var(--mute)}
+.tile[aria-pressed="true"]{border-color:var(--wash);background:var(--wash);color:#fff}
+.tile[aria-pressed="true"] .i,.tile[aria-pressed="true"] small{color:#fff}
+.tile[aria-pressed="true"]::after{content:"✓";position:absolute;top:7px;right:10px;font-size:15px;font-weight:900}
+.kmrow{display:grid;gap:6px;background:var(--wash-soft);border-radius:14px;padding:10px}
+.kmrow>span{font-weight:700;font-size:13px;color:var(--wash)}
+.kmb{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.kmb button{border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 2px;font-weight:800;font-size:13.5px;color:var(--ink)}
+.kmb button[aria-pressed="true"]{border-color:var(--wash);background:var(--wash);color:#fff}
+details.more{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+details.more summary{font-weight:700;cursor:pointer;color:var(--mute);font-size:14px}
+details.more[open] summary{margin-bottom:8px}
+details.more textarea{border:2px solid var(--line);border-radius:10px;padding:10px;width:100%;background:var(--surface)}
+.okscreen{text-align:center;display:grid;justify-items:center;gap:10px;padding:18px 0 6px}
+.tick{width:96px;height:96px;border-radius:50%;background:var(--ok);display:grid;place-items:center;animation:pop .35s ease-out}
+.tick svg{width:56px;height:56px;color:#fff;stroke-dasharray:32;stroke-dashoffset:32;animation:draw .4s .2s forwards}
+@keyframes pop{from{transform:scale(.4);opacity:0}}
+@keyframes draw{to{stroke-dashoffset:0}}
+.okscreen h3{font-size:30px;text-transform:uppercase}
+.okscreen .plate{font-size:18px}
+.timer{font-family:var(--f-mono);font-weight:700;background:var(--ok-soft);color:var(--ok);border-radius:999px;padding:5px 12px;font-size:13px}
+.linkb{border:0;background:none;color:var(--mute);text-decoration:underline;font-weight:600;font-size:13.5px;padding:6px}
+.ph-nav .plusb{padding-top:0}
+.ph-nav .plusb .pc{width:50px;height:50px;border-radius:50%;background:var(--wash);color:#fff;display:grid;place-items:center;margin-top:-20px;box-shadow:0 6px 16px rgba(0,0,0,.22);border:4px solid var(--surface)}
+.ph-nav .plusb .pc svg{width:26px;height:26px}
+.sheet .del{border:0;background:none;color:var(--stop);font-weight:800;font-size:15px;padding:2px 4px}
+.auto{display:flex;gap:12px;align-items:center;background:var(--asphalt);color:var(--on-asphalt);border-color:var(--asphalt)}
+.auto p{color:var(--on-asphalt-mute)!important}
+.auto .btn{flex:none}
+.ph-scroll{padding-bottom:34px}
+#save-l{position:sticky;bottom:0;box-shadow:0 -10px 18px var(--bg)}
+.fiche-cta{display:flex;justify-content:space-between;align-items:center;gap:10px}
+@media (prefers-reduced-motion:reduce){.bigbadge.due,.scan.busy::after{animation:none}}
+
+/* ===== Chef de site & Direction ===== */
+.bar-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.bar-head h1{font-size:34px;text-transform:uppercase}
+.bar-head select{border:2px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);font-weight:700}
+.bar-head .right{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:14px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.kpi .v{font-family:var(--f-display);font-size:38px;font-weight:800;line-height:1.05}
+.kpi .s{color:var(--mute);font-size:13px}
+.people{display:grid;gap:10px}
+.person{display:grid;grid-template-columns:42px 1fr auto;gap:10px;align-items:center}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-family:var(--f-display);font-size:18px}
+.person small{display:block;color:var(--mute)}
+.hbar{display:grid;grid-template-columns:110px 1fr 40px;gap:8px;align-items:center;font-size:14px;margin:6px 0}
+.hbar .t{height:12px;border-radius:6px;background:var(--surface-2);overflow:hidden}
+.hbar .t i{display:block;height:100%;background:var(--wash);border-radius:6px}
+.hbar b{text-align:right;font-family:var(--f-mono)}
+.alerts{display:grid;gap:8px}
+.alert{display:flex;gap:10px;align-items:flex-start;border-radius:10px;padding:10px 12px;font-size:14px}
+.alert .i{width:20px;height:20px;margin-top:1px}
+.a-warn{background:var(--signal-soft)}.a-warn .i{color:var(--signal)}
+.a-stop{background:var(--stop-soft)}.a-stop .i{color:var(--stop)}
+.a-ok{background:var(--ok-soft)}.a-ok .i{color:var(--ok)}
+.feed{max-height:340px;overflow:auto}
+.feed table,.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.feed th,.tbl th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);padding:6px 8px;border-bottom:1px solid var(--line);font-weight:700}
+.feed td,.tbl td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl td.n,.tbl th.n{text-align:right;font-variant-numeric:tabular-nums}
+.scroll-x{overflow-x:auto}
+.composer{display:flex;gap:8px}
+.composer input{flex:1;min-width:0;border:2px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--mute);font-family:var(--f-body);font-size:11px}
+.chart .gl{stroke:var(--line)}
+.chart .bar{fill:var(--wash)}
+.chart .bar.today{fill:var(--signal)}
+.tarifs{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;font-size:14px}
+.tarifs input{width:84px;border:2px solid var(--line);border-radius:8px;padding:6px 8px;text-align:right;background:var(--surface);font-family:var(--f-mono)}
+.modal[hidden]{display:none}
+.modal{position:fixed;inset:0;background:rgba(10,12,14,.55);display:grid;place-items:center;z-index:40;padding:16px}
+.modal .card{max-width:760px;width:100%;max-height:85vh;overflow:auto}
+pre.csv{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:var(--f-mono);font-size:12px;overflow:auto;max-height:280px;white-space:pre}
+
+
+/* ===== Offre ===== */
+.bonus{margin-top:14px;border:2px dashed var(--signal);background:var(--signal-soft)}
+.bonus h3{font-size:24px;text-transform:uppercase;margin:6px 0 4px}
+.bonus p{margin:0;color:var(--mute)}
+
+.of-hero{background:var(--asphalt);color:var(--on-asphalt);border-radius:18px;padding:clamp(22px,4vw,40px);display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:end}
+.of-hero h1{font-size:clamp(32px,4.6vw,54px);text-transform:uppercase}
+.of-hero h1 em{font-style:normal;color:var(--signal)}
+.of-hero p{color:var(--on-asphalt-mute);font-size:17px;margin:12px 0 0;max-width:56ch}
+.of-hero .eyebrow{color:var(--on-asphalt-mute)}
+.of-stamp{justify-self:end;border:3px solid var(--signal);color:var(--signal);border-radius:12px;padding:12px 16px;transform:rotate(-3deg);font-family:var(--f-display);text-transform:uppercase;font-size:20px;line-height:1.1;text-align:center}
+.of-stamp b{display:block;font-size:34px}
+.steps3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.pack{display:flex;flex-direction:column;gap:12px;position:relative}
+.pack .num{font-family:var(--f-mono);font-weight:700;color:var(--wash);font-size:13px;letter-spacing:.06em}
+.pack h3{font-size:26px;text-transform:uppercase}
+.pack .price{font-family:var(--f-display);font-weight:800;font-size:46px;line-height:1}
+.pack .price small{font-family:var(--f-body);font-size:15px;font-weight:600;color:var(--mute)}
+.pack .was{color:var(--mute);text-decoration:line-through;font-weight:600}
+.pack ul{margin:0;padding:0;list-style:none;display:grid;gap:8px;font-size:14.5px}
+.pack li{display:flex;gap:8px;align-items:flex-start}
+.pack li .i{width:18px;height:18px;flex:none;color:var(--ok);margin-top:1px}
+.pack .foot{margin-top:auto;font-size:13px;color:var(--mute);border-top:1px dashed var(--line);padding-top:10px}
+.pack.hl{border:2px solid var(--wash);box-shadow:0 10px 30px color-mix(in srgb,var(--wash) 18%,transparent)}
+.pack .tag{position:absolute;top:-12px;right:16px;background:var(--signal);color:#1a1405;font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:4px 10px}
+.of-sim{display:grid;grid-template-columns:1fr 1.2fr;gap:16px}
+.of-sim label{display:block;font-weight:700;font-size:14px;margin:6px 0}
+.of-sim input[type=range]{width:100%;accent-color:var(--wash)}
+.of-sim .val{float:right;font-family:var(--f-mono);font-weight:700}
+.cmp{display:grid;gap:10px}
+.cmp .row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:baseline;border-bottom:1px dashed var(--line);padding-bottom:8px}
+.cmp .row b{font-family:var(--f-mono)}
+.cmp .verdict{background:var(--ok-soft);border-radius:12px;padding:14px;font-size:15px}
+.cmp .verdict b{font-family:var(--f-display);font-size:30px;display:block;color:var(--ok)}
+.guar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.guar .card h3{font-size:20px;margin:6px 0 4px;text-transform:uppercase}
+.guar .card p{margin:0;color:var(--mute);font-size:14px}
+.guar .i{width:24px;height:24px;color:var(--wash)}
+.opts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.opts div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px}
+.opts b{display:block;font-size:15px}
+.opts span{color:var(--mute)}
+.why{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.why .card p{margin:6px 0 0;color:var(--mute)}
+.next{counter-reset:n;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.next .card{position:relative;padding-top:44px}
+.next .card::before{counter-increment:n;content:counter(n);position:absolute;top:12px;left:18px;width:24px;height:24px;border-radius:50%;background:var(--wash);color:#fff;font-weight:800;display:grid;place-items:center;font-size:13px}
+.next b{display:block;font-family:var(--f-display);font-size:19px;text-transform:uppercase}
+.next span{color:var(--mute);font-size:14px}
+.valid{margin-top:14px;font-size:13px;color:var(--mute)}
+@media (max-width:980px){.of-hero,.of-sim,.why{grid-template-columns:1fr}.of-stamp{justify-self:start}.steps3,.guar{grid-template-columns:1fr}.next,.opts{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.next,.opts{grid-template-columns:1fr}.tabs{flex-wrap:wrap;gap:4px}.tabs button{flex:1 1 auto;white-space:nowrap;padding:7px 10px}}
+
+@media (max-width:980px){
+  .pitch,.phone-stage,.grid2,.calc{grid-template-columns:1fr}
+  .gains,.pilot,.kpis{grid-template-columns:1fr 1fr}
+  .grid3{grid-template-columns:1fr}
+  .device{max-width:420px;margin:0 auto;width:100%}
+}
+@media (max-width:560px){
+  .device{background:none;padding:0;box-shadow:none;border-radius:0}
+  .screen{border-radius:16px;height:auto;min-height:640px}
+  .gains,.pilot,.kpis{grid-template-columns:1fr}
+  .flow .row{grid-template-columns:1fr}
+  .flow .row.h{display:none}
+  .flow .before::before{content:"Aujourd’hui · ";font-weight:700}
+  .flow .after::before{content:"Avec PrépaFlow · ";font-weight:700}
+  .tabs{margin-left:0;width:100%}
+  .tabs button{flex:1;padding:8px 6px;font-size:13px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14M6 17l1.6-5.2A2 2 0 0 1 9.5 10h5a2 2 0 0 1 1.9 1.8L18 17"/><circle cx="8" cy="17.5" r="1.5"/><circle cx="16" cy="17.5" r="1.5"/><path d="M8 6c0-1.5 1-2.5 1-2.5S10 4.5 10 6a1 1 0 0 1-2 0zM14 6c0-1.5 1-2.5 1-2.5S16 4.5 16 6a1 1 0 0 1-2 0z"/></svg></div>
+      <div><b>PrépaFlow</b><small>Proposition pour 4GO</small></div></div>
+    <nav class="tabs" role="tablist" aria-label="Vues de la démo">
+      <button role="tab" data-v="presentation" id="t-presentation">Présentation</button>
+      <button role="tab" data-v="preparateur" id="t-preparateur">Préparateur</button>
+      <button role="tab" data-v="chef" id="t-chef">Chef de site</button>
+      <button role="tab" data-v="direction" id="t-direction">Direction</button>
+      <button role="tab" data-v="offre" id="t-offre">L’offre</button>
+    </nav>
+  </div>
+</header>
+<div class="demo-note"><div class="wrap"><b>Démo interactive.</b> Données fictives, rien n’est envoyé. Ce que vous saisissez côté préparateur apparaît aussitôt chez le chef de site et à la direction.</div></div>
+
+<main class="wrap">
+
+<!-- ===================== PRÉSENTATION ===================== -->
+<section class="view" id="v-presentation" aria-labelledby="t-presentation">
+  <div class="pitch">
+    <div>
+      <div class="eyebrow">Préparation de véhicules · 30 sites</div>
+      <h1>Chaque voiture préparée, <em>facturée le jour même.</em></h1>
+      <p class="lead">Aujourd’hui, la facturation de 4GO repose sur une fiche papier, tamponnée par l’agence, prise en photo et envoyée sur WhatsApp, qu’il faut réclamer chaque soir. PrépaFlow la remplace par une saisie en 10 secondes sur le téléphone du préparateur, validée par l’agence et transmise automatiquement.</p>
+      <div class="ctas"><button class="btn b-main" data-go="preparateur">Essayer l’appli préparateur</button><button class="btn b-ghost" data-go="direction">Voir le tableau de bord direction</button><button class="btn b-ghost" data-go="offre">Voir l’offre</button></div>
+    </div>
+    <div class="card">
+      <div class="eyebrow" style="margin-bottom:10px">Ce qui change pour une journée de préparation</div>
+      <div class="flow" id="flow"></div>
+    </div>
+  </div>
+
+  <div class="section-t"><h2>Ce que 4GO y gagne</h2></div>
+  <div class="gains">
+    <div class="card gain"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><h3>Aucune prestation perdue</h3><p>Chaque véhicule est saisi au moment où il est rendu, avec l’heure et la plaque. Fini les lignes oubliées sur la fiche.</p></div>
+    <div class="card gain"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><h3>Facturation en un clic</h3><p>L’export du mois par site et par prestation est prêt, au lieu de recompter des photos de fiches.</p></div>
+    <div class="card gain"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3"/></svg><h3>Plus de relances</h3><p>Rappels de badge calés sur le planning, fiche validée par l’agence sur le téléphone et envoyée toute seule.</p></div>
+    <div class="card gain"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg><h3>Preuves en cas de litige</h3><p>Heure, photo et signature de l’agence sur chaque prestation. Les écarts avec le loueur se règlent en deux minutes.</p></div>
+  </div>
+
+  <div class="section-t"><h2>Combien ça représente</h2><p>Faites varier les hypothèses : ce sont des estimations, à affiner avec vos vrais chiffres.</p></div>
+  <div class="calc">
+    <div class="card">
+      <label for="c-sites">Sites de préparation <span class="val" id="c-sites-v"></span></label><input id="c-sites" type="range" min="1" max="40" value="30">
+      <label for="c-veh">Véhicules préparés par site et par jour <span class="val" id="c-veh-v"></span></label><input id="c-veh" type="range" min="5" max="80" value="25">
+      <label for="c-prix">Prix moyen facturé par véhicule <span class="val" id="c-prix-v"></span></label><input id="c-prix" type="range" min="5" max="40" value="14">
+      <label for="c-perte">Lignes oubliées ou illisibles aujourd’hui <span class="val" id="c-perte-v"></span></label><input id="c-perte" type="range" min="0" max="5" step="0.5" value="1.5">
+      <label for="c-rel">Minutes de relance par site et par jour <span class="val" id="c-rel-v"></span></label><input id="c-rel" type="range" min="0" max="30" value="10">
+    </div>
+    <div class="card res">
+      <div class="line"><span>Prestations par mois (26 jours)</span><b class="tnum" id="r-prest"></b></div>
+      <div class="line"><span>Chiffre d’affaires mensuel suivi en temps réel</span><b class="tnum" id="r-ca"></b></div>
+      <div><div class="eyebrow">Chiffre d’affaires récupéré chaque mois</div><div class="big ok tnum" id="r-recup"></div></div>
+      <div><div class="eyebrow">Temps de relance économisé chaque mois</div><div class="big tnum" id="r-temps"></div></div>
+    </div>
+  </div>
+
+  <div class="section-t"><h2>Démarrer sans risque</h2><p>Un pilote sur un site, puis le déploiement site par site.</p></div>
+  <div class="pilot">
+    <div class="card"><b>Semaine 1</b><span>Paramétrage : sites, préparateurs, types de prestations, tarifs, format d’export.</span></div>
+    <div class="card"><b>Semaines 2 à 5</b><span>Pilote à Montélimar : les préparateurs saisissent, l’agence valide, on ajuste avec eux.</span></div>
+    <div class="card"><b>Bilan</b><span>Comparaison chiffrée : fiches reçues à l’heure, prestations récupérées, temps gagné.</span></div>
+    <div class="card"><b>Déploiement</b><span>Ouverture site par site, formation des chefs de site, sans arrêter Combo ni vos outils actuels.</span></div>
+  </div>
+  <div class="contact">
+    <div><h3>Hatim · Les Monsieurs</h3><p>Préparateur chez 4GO à Montélimar et développeur d’applications. J’ai conçu PrépaFlow à partir de ce que je vis sur le terrain.</p></div>
+    <div class="tel"><span class="num" style="font-size:18px">Une question ? Écrivez-moi directement.</span></div>
+  </div>
+</section>
+
+<!-- ===================== OFFRE ===================== -->
+<section class="view" id="v-offre" aria-labelledby="t-offre" hidden>
+  <div class="of-hero">
+    <div>
+      <div class="eyebrow">Offre partenaire réservée à 4GO</div>
+      <h1>Une application à vous. <em>Payée une fois, sans abonnement.</em></h1>
+      <p>Tous vos sites, tous vos préparateurs, sans limite. Le code et les données appartiennent à 4GO. Et vous commencez par un pilote gratuit à Montélimar.</p>
+    </div>
+    <div class="of-stamp">Pilote<b>offert</b>4 semaines</div>
+  </div>
+
+  <div class="section-t"><h2>Comment ça se passe</h2></div>
+  <div class="steps3">
+    <div class="card pack">
+      <span class="num">ÉTAPE 1 · 4 SEMAINES</span>
+      <h3>Pilote Montélimar</h3>
+      <div class="price">0 €<small> · offert</small></div>
+      <ul><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Appli installée sur les téléphones des préparateurs</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Votre fiche à l’identique : Quick, Full, Refueling, Check in, Délestage, transferts</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Validation de la fiche par l’agent Europcar sur le téléphone</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Ajustements en direct sur le terrain</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Bilan chiffré à la fin</span></li></ul>
+      <div class="foot">Si le bilan ne vous convainc pas, on s’arrête là. Vous ne devez rien.</div>
+    </div>
+    <div class="card pack hl">
+      <span class="tag">Tarif partenaire</span>
+      <span class="num">ÉTAPE 2 · UNE SEULE FOIS</span>
+      <h3>L’application complète</h3>
+      <div><span class="was">9 900 €</span></div>
+      <div class="price">5 900 €<small> HT</small></div>
+      <div style="font-weight:700;color:var(--wash)">ou 6 × 983 € sans frais</div>
+      <ul><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span><b>Sites, préparateurs et chefs de site illimités</b></span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Appli préparateur, espace chef de site, tableau de bord direction</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Export de facturation au format de votre comptabilité</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Installation sur vos propres comptes, à votre nom</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Code source et données remis à 4GO : l’application vous appartient</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Formation des chefs de site et guide d’une page</span></li></ul>
+      <div class="foot">Rien à payer avant le bilan du pilote. Ensuite, 6 mensualités de 983 € : elles sont couvertes par ce que l’appli récupère chaque mois.</div>
+    </div>
+    <div class="card pack">
+      <span class="num">ENSUITE · SI VOUS EN AVEZ BESOIN</span>
+      <h3>Interventions à la demande</h3>
+      <div class="price">0 €<small> / mois</small></div>
+      <ul><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span><b>3 mois de garantie inclus</b> : corrections et petits ajustements</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Après : aucun frais fixe, vous ne payez que ce que vous demandez</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Évolution chiffrée à l’avance, validée par vous avant de démarrer</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Tarif : 60 € HT de l’heure, ou forfait par évolution</span></li><li><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg><span>Hébergement payé directement à l’hébergeur, à votre nom : environ 25 € par mois</span></li></ul>
+      <div class="foot">Pas d’abonnement, pas d’engagement, pas de dépendance.</div>
+    </div>
+  </div>
+
+  <div class="bonus card">
+    <div><span class="eyebrow">Bonus si commande avant le 30 novembre 2026</span><h3>Import automatique des plannings Combo offert</h3><p>Le planning reçu par e-mail arrive tout seul dans l’appli des préparateurs. Valeur : 1 500 € HT.</p></div>
+  </div>
+
+  <div class="section-t"><h2>Ce que ça coûte face à ce que ça rapporte</h2><p>Hypothèses à ajuster avec vos chiffres réels.</p></div>
+  <div class="of-sim">
+    <div class="card">
+      <label for="o-sites">Sites équipés <span class="val" id="o-sites-v"></span></label><input id="o-sites" type="range" min="1" max="40" value="30">
+      <label for="o-veh">Véhicules par site et par jour <span class="val" id="o-veh-v"></span></label><input id="o-veh" type="range" min="5" max="80" value="25">
+      <label for="o-prix">Prix moyen facturé par véhicule <span class="val" id="o-prix-v"></span></label><input id="o-prix" type="range" min="5" max="40" value="14">
+      <label for="o-perte">Lignes perdues aujourd’hui <span class="val" id="o-perte-v"></span></label><input id="o-perte" type="range" min="0" max="5" step="0.5" value="1.5">
+    </div>
+    <div class="card cmp">
+      <div class="row"><span>Prix de l’application, une fois</span><b class="tnum">5 900 €</b></div>
+      <div class="row"><span>Ou par mois, pendant 6 mois</span><b class="tnum">983 €</b></div>
+      <div class="row"><span>Chiffre d’affaires récupéré par mois</span><b class="tnum" id="o-gain"></b></div>
+      <div class="row"><span>Application remboursée en</span><b class="tnum" id="o-amort"></b></div>
+      <div class="row"><span>Gain net sur 3 ans</span><b class="tnum" id="o-3ans"></b></div>
+      <div class="verdict" id="o-verdict"></div>
+    </div>
+  </div>
+
+  <div class="section-t"><h2>Nos engagements</h2></div>
+  <div class="guar">
+    <div class="card"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><h3>Elle est à vous</h3><p>Code source, données et comptes au nom de 4GO. Vous pouvez la faire évoluer par qui vous voulez.</p></div>
+    <div class="card"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M12 3v18"/></svg><h3>Sans limite</h3><p>Ouvrez autant de sites et de comptes que nécessaire, sans surcoût. Un nouveau site s’ajoute en quelques minutes.</p></div>
+    <div class="card"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14 0M8.5 16.4a6 6 0 0 1 7 0M12 20h.01"/></svg><h3>Marche sans réseau</h3><p>Saisie possible dans les parkings souterrains, envoi automatique dès que le réseau revient. Données hébergées en Europe, RGPD.</p></div>
+  </div>
+
+  <div class="section-t"><h2>Pour aller plus loin</h2><p>Évolutions possibles plus tard, chiffrées ensemble.</p></div>
+  <div class="opts">
+    <div><b>Espace agence Europcar</b><span>L’agence consulte et valide les fiches de son site, avec les chiffres du mois.</span></div>
+    <div><b>Photos état des lieux et dommages</b><span>Avant / après horodatés pour chaque véhicule, en cas de contestation.</span></div>
+    <div><b>Connexion à la badgeuse AGS</b><span>Les passages de badge remontent tout seuls dans l’appli, sans double saisie. Mise en place selon l’accès aux données que permet AGS, vérifié ensemble.</span></div>
+    <div><b>Facture mensuelle automatique</b><span>La facture du mois par site générée à partir des fiches validées.</span></div>
+  </div>
+
+  <div class="section-t"><h2>Pourquoi moi</h2></div>
+  <div class="why">
+    <div class="card"><h3>Je connais le terrain</h3><p>Je prépare des véhicules chez 4GO. L’appli suit exactement notre fiche, nos prestations et nos contraintes : préparateur seul certains jours, parkings sans réseau, agent pressé en fin de journée.</p></div>
+    <div class="card"><h3>Un seul interlocuteur, réactif</h3><p>Pas de plateforme générique ni de centre d’appel. Un ajustement est traité en jours, pas en mois, et testé sur site avant d’être déployé.</p></div>
+  </div>
+
+  <div class="section-t"><h2>La suite</h2></div>
+  <div class="next">
+    <div class="card"><b>Réunion de 30 min</b><span>Démo en direct, vos questions, vos chiffres réels.</span></div>
+    <div class="card"><b>Pilote sous 7 jours</b><span>Paramétrage puis lancement à Montélimar.</span></div>
+    <div class="card"><b>Bilan à 4 semaines</b><span>Résultats chiffrés et décision, sans pression.</span></div>
+    <div class="card"><b>Tous les sites</b><span>Ouverts en 4 à 6 semaines, site par site.</span></div>
+  </div>
+  <p class="valid">Tarifs HT, TVA non applicable (art. 293 B du CGI). Offre partenaire valable pour une commande passée au plus tard le 31 décembre 2026. Les montants de la simulation sont des estimations, pas un engagement de résultat.</p>
+</section>
+
+<!-- ===================== PRÉPARATEUR ===================== -->
+<section class="view" id="v-preparateur" aria-labelledby="t-preparateur" hidden>
+  <div class="phone-stage">
+    <div class="device"><div class="screen">
+      <div class="ph-top"><h2 id="ph-title">Bonjour Sami</h2><small id="ph-sub"></small></div>
+      <div class="ph-scroll" id="ph-body"></div>
+      <nav class="ph-nav" aria-label="Menu préparateur">
+        <button data-p="jour" aria-current="true"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Accueil</button>
+        <button data-p="saisir" class="plusb" aria-label="Ajouter une voiture"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>Ajouter</button>
+        <button data-p="fiche"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Ma fiche</button>
+        <button data-p="planning"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Planning</button>
+      </nav>
+    </div></div>
+    <div class="side-explain">
+      <div class="card auto"><div><h3 style="color:inherit">Une voiture en 3 gestes</h3><p style="margin:4px 0 0">Photo de la plaque, toucher ce qui a été fait, enregistrer. Regardez :</p></div><button class="btn b-main" id="autoplay">▶ Voir une saisie</button></div>
+      <div class="card"><div class="eyebrow">La badgeuse, sans double saisie</div><p style="margin:6px 0 10px">Le préparateur badge sur la badgeuse AGS, comme aujourd’hui. Le pointage arrive tout seul dans l’appli : rien à toucher sur le téléphone. S’il oublie, il reçoit un rappel.</p><button class="btn b-main" id="sim-badge" style="width:100%">Simuler un passage de badge</button><div class="eyebrow" style="margin:14px 0 6px">Simuler l’heure de la journée</div><div class="clock" id="clock"></div></div>
+      <div class="card"><h3>Zéro formation</h3><p>Un gros bouton « Ajouter une voiture ». La plaque se lit en photo, le modèle se remplit seul, chaque prestation est une grande touche : Quick, Full, Refueling, Check in, Délestage, Transfert. Ça marche aussi sans réseau dans les parkings.</p></div>
+      <div class="card"><h3>La fiche se remplit toute seule</h3><p>En fin de journée, l’agent de l’agence vérifie la fiche et signe sur le téléphone. Elle part aussitôt au responsable : plus de photo à envoyer sur WhatsApp, plus de relance.</p></div>
+      <div class="card"><h3>Le planning dans la poche</h3><p>Le planning de Combo est repris dans l’appli, avec une alerte quand il change. Les contrats restent sur votre plateforme actuelle.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHEF DE SITE ===================== -->
+<section class="view" id="v-chef" aria-labelledby="t-chef" hidden>
+  <div class="bar-head"><h1>Chef de site</h1><select id="site-sel" aria-label="Site"></select><span class="pill p-wash" id="chef-date"></span></div>
+  <div class="kpis" id="chef-kpis"></div>
+  <div class="grid2">
+    <div class="card"><div class="eyebrow" style="margin-bottom:10px">Véhicules préparés aujourd’hui</div><div class="feed" id="chef-feed"></div></div>
+    <div style="display:grid;gap:14px;align-content:start">
+      <div class="card"><div class="eyebrow" style="margin-bottom:10px">Équipe et pointages</div><div class="people" id="chef-people"></div></div>
+      <div class="card"><div class="eyebrow" style="margin-bottom:10px">À surveiller</div><div class="alerts" id="chef-alerts"></div></div>
+      <div class="card"><div class="eyebrow" style="margin-bottom:10px">Envoyer une consigne à l’équipe</div><form class="composer" id="consigne-f"><input id="consigne-in" placeholder="Ex. : priorité aux 6 Clio du retour de 14 h" aria-label="Consigne"><button class="btn b-main">Envoyer</button></form><p style="margin:8px 0 0;color:var(--mute);font-size:13px">Elle s’affiche sur le téléphone des préparateurs du site.</p></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="eyebrow" style="margin-bottom:6px">Prestations du jour par type</div><div id="chef-types"></div></div>
+</section>
+
+<!-- ===================== DIRECTION ===================== -->
+<section class="view" id="v-direction" aria-labelledby="t-direction" hidden>
+  <div class="bar-head"><h1>Direction 4GO</h1><span class="pill p-mute">3 sites dans la démo · conçu pour 30</span><div class="right"><button class="btn b-dark" id="export-btn">Export facturation du mois</button></div></div>
+  <div class="kpis" id="dir-kpis"></div>
+  <div class="grid2">
+    <div class="card"><div class="eyebrow">Chiffre d’affaires par jour, tous sites (14 derniers jours)</div><svg class="chart" id="dir-chart" viewBox="0 0 640 230" role="img" aria-label="Chiffre d’affaires par jour"></svg></div>
+    <div class="card"><div class="eyebrow" style="margin-bottom:10px">Tarifs par prestation (exemple, modifiable)</div><div class="tarifs" id="tarifs"></div><p style="margin:10px 0 0;color:var(--mute);font-size:13px">Les montants se recalculent partout dès qu’un tarif change.</p></div>
+  </div>
+  <div class="card" style="margin-top:14px"><div class="eyebrow" style="margin-bottom:10px">Sites</div><div class="scroll-x"><table class="tbl" id="dir-sites"></table></div></div>
+</section>
+</main>
+
+<div class="toast" id="toast" role="status"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3"/></svg><span id="toast-t"></span></div>
+<div class="modal" id="modal" hidden></div>
+
+<script>
+(function () {
+'use strict';
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const E = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const eur = n => (Math.round(n)).toLocaleString('fr-FR') + ' €';
+const pad = n => String(n).padStart(2, '0');
+const hm = d => pad(d.getHours()) + ':' + pad(d.getMinutes());
+const ICON = {
+  clock: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M5 3 2 6M22 6l-3-3"/></svg>',
+  check: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+  warn: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>',
+  cam: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>',
+  pen: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>',
+  msg: '<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+};
+
+/* ---------- Référentiel ---------- */
+const TYPES = [
+  { k: 'Q', n: 'Quick', d: 'Lavage rapide' },
+  { k: 'F', n: 'Full', d: 'Lavage complet' },
+  { k: 'R', n: 'Refueling', d: 'Mise à niveau carburant' },
+  { k: 'C', n: 'Check in', d: 'Contrôle au retour' },
+  { k: 'D', n: 'Délestage', d: 'Retrait objets et équipements' },
+  { k: 'T', n: 'Transfert', d: 'Convoyage du véhicule' },
+];
+const KM = ['0-5 km', '5-10 km', '10-15 km', '15-20 km'];
+const DEFAULT_TARIFS = { Q: 8, F: 19, R: 3, C: 2, D: 5, 'T0': 6, 'T1': 9, 'T2': 12, 'T3': 15 };
+const FLEET = [['FR-418-KC', 'Peugeot 208'], ['GH-207-LM', 'Renault Clio V'], ['GK-531-TB', 'Citroën C3'], ['FX-902-PD', 'Peugeot 2008'], ['GL-114-AZ', 'Tesla Model 3'], ['GJ-688-RN', 'Volkswagen T-Roc'], ['FZ-350-HE', 'Fiat 500'], ['GM-045-SV', 'Renault Captur'], ['GB-773-JW', 'Toyota Yaris'], ['GH-912-CX', 'Peugeot 308 SW'], ['GN-266-FA', 'Renault Trafic'], ['GE-509-YL', 'Dacia Sandero'], ['GK-830-PM', 'Citroën Berlingo'], ['GA-147-UD', 'Kia Niro'], ['GM-384-BT', 'Renault Clio V'], ['GJ-921-KS', 'Peugeot 208']];
+const MODEL = Object.fromEntries(FLEET);
+const SITES = [
+  { id: 'mtl', nom: 'Montélimar', agence: 'Agence Montélimar gare', preps: [['Sami', '#0E9AA7'], ['Théo', '#7A5AF8']], base: 22 },
+  { id: 'val', nom: 'Valence TGV', agence: 'Agence Valence TGV', preps: [['Inès', '#D9480F'], ['Malik', '#1E8E5A'], ['Jordan', '#C2255C']], base: 34 },
+  { id: 'avi', nom: 'Avignon centre', agence: 'Agence Avignon centre', preps: [['Lucas', '#1C7ED6'], ['Nadia', '#E8A200']], base: 27 },
+];
+const PLAN = { arrivee: '08:00', pause: '12:00', reprise: '13:30', depart: '17:00' };
+const BADGES = [['arrivee', 'Arrivée'], ['pause', 'Pause'], ['reprise', 'Reprise'], ['depart', 'Départ']];
+
+/* ---------- Données (démo, mémorisées dans ce navigateur) ---------- */
+const today = new Date(); today.setSeconds(0, 0);
+const iso = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const TODAY = iso(today);
+let rnd = 7; const R = () => (rnd = (rnd * 16807) % 2147483647) / 2147483647;
+function genLines(siteId, prep, n, startH) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const [plate, model] = FLEET[Math.floor(R() * FLEET.length)];
+    const p = R(), types = [];
+    if (p < .55) types.push('Q'); else if (p < .85) types.push('F'); else types.push('T');
+    if (R() < .3 && !types.includes('T')) types.push('R');
+    if (R() < .18) types.push('D');
+    if (R() < .25 && !types.includes('T')) types.push('C');
+    const km = types.includes('T') ? Math.floor(R() * 4) : null;
+    const t = new Date(today); t.setHours(startH, 0, 0, 0); t.setMinutes(t.getMinutes() + i * 26 + Math.floor(R() * 10));
+    out.push({ id: siteId + prep + i + '-' + t.getTime(), site: siteId, prep, plate, model, types, km, obs: R() < .12 ? 'Rayure aile arrière droite, photo jointe' : '', at: t.getTime() });
+  }
+  return out;
+}
+function seed() {
+  const s = { v: 3, day: TODAY, tarifs: { ...DEFAULT_TARIFS }, lines: [], badges: {}, fiches: {}, consignes: {}, history: {}, clock: '10:30' };
+  s.lines.push(...genLines('mtl', 'Sami', 6, 8), ...genLines('mtl', 'Théo', 5, 8));
+  s.lines.push(...genLines('val', 'Inès', 8, 8), ...genLines('val', 'Malik', 7, 8), ...genLines('val', 'Jordan', 6, 9));
+  s.lines.push(...genLines('avi', 'Lucas', 7, 8), ...genLines('avi', 'Nadia', 6, 8));
+  s.badges = { 'mtl|Sami': { arrivee: '07:58' }, 'mtl|Théo': { arrivee: '08:03' }, 'val|Inès': { arrivee: '07:55' }, 'val|Malik': {}, 'val|Jordan': { arrivee: '09:01' }, 'avi|Lucas': { arrivee: '08:00' }, 'avi|Nadia': { arrivee: '07:59' } };
+  s.consignes = { mtl: [{ t: 'Priorité aux 6 Clio du retour de 14 h, départs clients à 16 h.', at: '07:45', by: 'Chef de site' }] };
+  for (let d = 1; d <= 30; d++) {
+    const day = new Date(today); day.setDate(day.getDate() - d);
+    if (day.getDay() === 0) continue;
+    SITES.forEach(site => {
+      const n = Math.round(site.base * (0.8 + R() * 0.4));
+      const c = { Q: 0, F: 0, R: 0, C: 0, D: 0, T0: 0, T1: 0, T2: 0, T3: 0 };
+      for (let i = 0; i < n; i++) { const p = R(); if (p < .55) c.Q++; else if (p < .85) c.F++; else c['T' + Math.floor(R() * 4)]++; if (R() < .3) c.R++; if (R() < .18) c.D++; }
+      const late = R() < .12;
+      (s.history[iso(day)] = s.history[iso(day)] || {})[site.id] = { c, n, late };
+    });
+  }
+  return s;
+}
+let S;
+try { S = JSON.parse(localStorage.getItem('prepaflow-demo') || 'null'); } catch (e) { S = null; }
+if (!S || S.v !== 3 || S.day !== TODAY) S = seed();
+const save = () => { try { localStorage.setItem('prepaflow-demo', JSON.stringify(S)); } catch (e) { } };
+save();
+
+const lineAmount = l => l.types.reduce((s, t) => s + (t === 'T' ? (S.tarifs['T' + (l.km ?? 0)] || 0) : (S.tarifs[t] || 0)), 0);
+const countAmount = c => Object.entries(c).reduce((s, [k, v]) => s + v * (S.tarifs[k] || 0), 0);
+function toast(m) { $('#toast-t').textContent = m; const t = $('#toast'); t.classList.add('on'); clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('on'), 3600); }
+
+/* ---------- Navigation ---------- */
+const VIEWS = ['presentation', 'preparateur', 'chef', 'direction', 'offre'];
+function go(v) {
+  if (!VIEWS.includes(v)) v = 'presentation';
+  VIEWS.forEach(x => { $('#v-' + x).hidden = x !== v; $('#t-' + x).setAttribute('aria-selected', String(x === v)); });
+  try { history.replaceState(null, '', '#' + v); } catch (e) { }
+  ({ presentation: renderPitch, preparateur: renderPhone, chef: renderChef, direction: renderDir, offre: renderOffre })[v]();
+  window.scrollTo(0, 0);
+}
+$$('[data-v]').forEach(b => b.onclick = () => go(b.dataset.v));
+document.addEventListener('click', e => { const g = e.target.closest('[data-go]'); if (g) go(g.dataset.go); });
+
+/* ===================== OFFRE ===================== */
+function renderOffre() {
+  const v = id => +$('#' + id).value;
+  const sites = v('o-sites'), veh = v('o-veh'), prix = v('o-prix'), perte = v('o-perte');
+  $('#o-sites-v').textContent = sites; $('#o-veh-v').textContent = veh; $('#o-prix-v').textContent = prix + ' €'; $('#o-perte-v').textContent = String(perte).replace('.', ',') + ' %';
+  const gain = sites * veh * 26 * prix * perte / 100, host = 25;
+  $('#o-gain').textContent = eur(gain);
+  const net = gain - host;
+  $('#o-amort').textContent = net > 0 ? (Math.ceil(5900 / net * 10) / 10).toLocaleString('fr-FR') + ' mois' : 'à étudier';
+  $('#o-3ans').textContent = eur(Math.max(0, net * 36 - 5900));
+  $('#o-verdict').innerHTML = net > 0
+    ? `<b>Remboursée en ${(Math.ceil(5900 / net * 10) / 10).toLocaleString('fr-FR')} mois</b>Chaque mensualité de 983 € est couverte par ce que l’appli récupère. Ensuite, tout reste chez 4GO.`
+    : `<b>Rentable dès que les relances comptent</b>Même sans ligne perdue, chaque soir sans relance libère vos responsables.`;
+}
+['o-sites', 'o-veh', 'o-prix', 'o-perte'].forEach(id => $('#' + id).addEventListener('input', renderOffre));
+
+/* ===================== PRÉSENTATION ===================== */
+function renderPitch() {
+  const rows = [
+    ['Planning', 'Reçu par e-mail depuis Combo, renouvelé souvent', 'Dans l’appli, avec une alerte à chaque changement', 0],
+    ['Contrat', 'Signé sur votre plateforme actuelle', 'Inchangé', 1],
+    ['Badge', 'Badgeuse oubliée le matin, à midi ou le soir', 'Pointage repris automatiquement de la badgeuse, rappel seulement en cas d’oubli', 0],
+    ['Saisie', 'Fiche quadrillée à la main', 'Photo de la plaque + un bouton par prestation', 0],
+    ['Validation', 'Tampon de l’agence sur papier', 'Signature de l’agent sur le téléphone', 0],
+    ['Envoi', 'Photo sur WhatsApp, souvent à relancer', 'Envoyée automatiquement au responsable', 0],
+    ['Facturation', 'Recompter les fiches en fin de mois', 'Export du mois par site en un clic', 0],
+  ];
+  $('#flow').innerHTML = `<div class="row h"><div class="head">Étape</div><div class="head">Aujourd’hui</div><div class="head">Avec PrépaFlow</div></div>` +
+    rows.map(([a, b, c, same]) => `<div class="row"><div class="step">${a}</div><div class="${same ? 'same' : 'before'}">${b}</div><div class="${same ? 'same' : 'after'}">${c}</div></div>`).join('');
+  calc();
+}
+function calc() {
+  const v = id => +$('#' + id).value;
+  const sites = v('c-sites'), veh = v('c-veh'), prix = v('c-prix'), perte = v('c-perte'), rel = v('c-rel');
+  $('#c-sites-v').textContent = sites; $('#c-veh-v').textContent = veh; $('#c-prix-v').textContent = prix + ' €'; $('#c-perte-v').textContent = String(perte).replace('.', ',') + ' %'; $('#c-rel-v').textContent = rel + ' min';
+  const prest = sites * veh * 26, ca = prest * prix;
+  $('#r-prest').textContent = prest.toLocaleString('fr-FR'); $('#r-ca').textContent = eur(ca);
+  $('#r-recup').textContent = eur(ca * perte / 100);
+  $('#r-temps').textContent = Math.round(sites * rel * 26 / 60).toLocaleString('fr-FR') + ' h';
+}
+['c-sites', 'c-veh', 'c-prix', 'c-perte', 'c-rel'].forEach(id => $('#' + id).addEventListener('input', calc));
+
+/* ===================== PRÉPARATEUR ===================== */
+const ME = { site: 'mtl', prep: 'Sami' };
+let pv = 'jour', draft = { plate: '', model: '', types: [], km: null, obs: '', photo: null };
+const myKey = () => ME.site + '|' + ME.prep;
+const myLines = () => S.lines.filter(l => l.site === ME.site && l.prep === ME.prep).sort((a, b) => a.at - b.at);
+const fiche = (site, prep) => S.fiches[site + '|' + prep] || { status: 'encours' };
+const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+function nextBadge(b) { return BADGES.find(([k]) => !b[k]); }
+function reminder() {
+  const b = S.badges[myKey()] || {}, now = toMin(S.clock), nb = nextBadge(b);
+  if (!nb) return null;
+  const due = toMin(PLAN[nb[0]]);
+  if (now >= due - 5) return { k: nb[0], label: nb[1], late: now > due + 5, due: PLAN[nb[0]] };
+  return null;
+}
+function renderPhone() {
+  const site = SITES.find(s => s.id === ME.site);
+  $('#ph-title').textContent = 'Bonjour ' + ME.prep;
+  $('#ph-sub').textContent = site.nom + ' · ' + today.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ' · ' + S.clock;
+  $$('.ph-nav button').forEach(b => b.setAttribute('aria-current', String(b.dataset.p === pv)));
+  ({ jour: phJour, saisir: phSaisir, fiche: phFiche, planning: phPlanning })[pv]();
+  $('#clock').innerHTML = ['07:57', '10:30', '12:03', '13:32', '16:58', '17:20'].map(t => `<button data-clock="${t}" aria-pressed="${t === S.clock}">${t}</button>`).join('');
+  $$('[data-clock]').forEach(b => b.onclick = () => { S.clock = b.dataset.clock; save(); const r = reminder(); renderPhone(); if (r) toast(`${S.clock} · Pense à badger : ${r.label.toLowerCase()} (prévue à ${r.due})`); else toast('Heure de la démo : ' + S.clock); });
+}
+$$('.ph-nav button').forEach(b => b.onclick = () => { pv = b.dataset.p; if (pv === 'saisir') draft = newDraft(); renderPhone(); $('#ph-body').scrollTop = 0; });
+$('#autoplay').onclick = autoplay;
+$('#sim-badge').onclick = () => { const b = S.badges[myKey()] = S.badges[myKey()] || {}, nb = nextBadge(b); if (!nb) return toast('Journée déjà pointée en entier'); b[nb[0]] = S.clock; save(); if (pv !== 'jour') pv = 'jour'; renderPhone(); toast('Badgeuse AGS : « ' + nb[1].toLowerCase() + ' » reçu à ' + S.clock + ', sans rien toucher'); const st = $('#badge-st'); if (st) { st.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 400 }); } };
+const PIC = {
+  Q: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+  F: '<path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8z"/><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9z"/>',
+  R: '<path d="M3 22V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v17M2 22h13M6 8h5"/><path d="M14 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V8l-3-3"/>',
+  C: '<rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 2h6v4H9zM9 14l2 2 4-4"/>',
+  D: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M12 16v-6m0 0-3 3m3-3 3 3"/>',
+  T: '<path d="M5 20 9 4M19 20 15 4M12 6v2M12 11v2M12 16v2"/>',
+};
+const pic = k => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PIC[k]}</svg>`;
+const TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+const chips = l => l.types.map(t => `<span class="pchip">${E(TYPES.find(x => x.k === t).n)}${t === 'T' ? ' ' + E(KM[l.km ?? 0]) : ''}</span>`).join(' ');
+const newDraft = () => ({ step: 1, plate: '', model: '', types: [], km: null, obs: '', photo: null, t0: Date.now(), more: false });
+draft = newDraft();
+function phJour() {
+  const b = S.badges[myKey()] = S.badges[myKey()] || {}, r = reminder(), nb = nextBadge(b), lines = myLines();
+  const f = fiche(ME.site, ME.prep), cons = (S.consignes[ME.site] || []).slice(-1), lastB = [...BADGES].reverse().find(([k]) => b[k]);
+  $('#ph-body').innerHTML = `
+    <div class="bigbadge ${r ? 'due' : ''}" id="badge-st" role="status">${ICON.clock}<span><b>${r ? (r.late ? 'Badge oublié : ' : 'C’est l’heure de badger : ') + E(nb[1].toLowerCase()) : lastB ? 'Badgé à ' + b[lastB[0]] + ' · ' + E(lastB[1].toLowerCase()) : 'Pas encore badgé aujourd’hui'}</b><small>${r ? 'Passez votre badge sur la badgeuse' : nb ? 'Reçu de la badgeuse · prochain : ' + E(nb[1].toLowerCase()) + ' à ' + PLAN[nb[0]] : 'Journée pointée en entier, reçue de la badgeuse'}</small></span><span class="dots">${BADGES.map(([k]) => `<i class="${b[k] ? 'on' : ''}"></i>`).join('')}</span></div>
+    <button class="addcar" id="go-saisir"><span class="pc">${'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>'}</span><b>Ajouter une voiture</b><small>Photo de la plaque, une touche, c’est enregistré</small></button>
+    <div class="todayc"><span class="n">${lines.length}</span><span>voiture${lines.length > 1 ? 's' : ''} aujourd’hui<small>${lines.length ? 'dernière à ' + hm(new Date(lines[lines.length - 1].at)) : 'à vous de jouer'}</small></span></div>
+    <div class="recent">${lines.slice(-3).reverse().map(l => `<div><span class="plate"><span>${E(l.plate)}</span></span>${chips(l)}<time>${hm(new Date(l.at))}</time></div>`).join('')}</div>
+    ${cons.map(c => `<div class="consigne"><small>Message du chef de site · ${E(c.at)}</small>${E(c.t)}</div>`).join('')}
+    <div class="card fiche-cta"><div><div class="eyebrow">Ma fiche du jour</div><b>${f.status === 'envoyee' ? 'Signée et envoyée ✓' : lines.length + ' ligne' + (lines.length > 1 ? 's' : '') + ' · à faire signer ce soir'}</b></div><button class="btn ${f.status === 'envoyee' ? 'b-ghost' : 'b-dark'}" id="go-fiche">${f.status === 'envoyee' ? 'Voir' : 'Ouvrir'}</button></div>`;
+  $('#go-saisir').onclick = () => { draft = newDraft(); pv = 'saisir'; renderPhone(); };
+  $('#go-fiche').onclick = () => { pv = 'fiche'; renderPhone(); };
+}
+const PLATE_RE = /^[A-Z]{2}-\d{3}-[A-Z]{2}$/;
+const fmtPlate = v => { const x = v.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7); return [x.slice(0, 2), x.slice(2, 5), x.slice(5, 7)].filter(Boolean).join('-'); };
+function doScan(cb) {
+  const btn = $('#scan'); if (!btn || btn.classList.contains('busy')) return;
+  btn.classList.add('busy'); btn.querySelector('b').textContent = 'Lecture de la plaque';
+  setTimeout(() => {
+    const used = new Set(myLines().map(l => l.plate)); const f = FLEET.find(x => !used.has(x[0])) || FLEET[0];
+    draft.plate = f[0]; draft.model = f[1]; draft.step = 2; phSaisir(); toast('Plaque lue : ' + f[0]); if (cb) cb();
+  }, 900);
+}
+function toggleType(k) {
+  const has = draft.types.includes(k);
+  if (has) draft.types = draft.types.filter(x => x !== k);
+  else { if (k === 'Q') draft.types = draft.types.filter(x => x !== 'F'); if (k === 'F') draft.types = draft.types.filter(x => x !== 'Q'); draft.types.push(k); }
+  if (!draft.types.includes('T')) draft.km = null;
+  phSaisir();
+}
+function saveDraft() {
+  if (!draft.types.length) return toast('Touchez au moins une prestation');
+  if (draft.types.includes('T') && draft.km == null) return toast('Choisissez la distance du transfert');
+  const t = new Date(today); const [h, m] = S.clock.split(':').map(Number); t.setHours(h, m);
+  const line = { id: 'n' + Date.now(), site: ME.site, prep: ME.prep, plate: draft.plate, model: draft.model || 'Modèle à préciser', types: draft.types.slice(), km: draft.km, obs: draft.obs + (draft.photo ? ' (photo jointe)' : ''), at: t.getTime() };
+  S.lines.push(line);
+  const f = fiche(ME.site, ME.prep); if (f.status === 'envoyee') S.fiches[myKey()] = { status: 'encours' };
+  save();
+  draft = { ...newDraft(), step: 3, last: line, secs: Math.max(2, Math.round((Date.now() - draft.t0) / 1000)) };
+  phSaisir();
+}
+function phSaisir() {
+  const body = $('#ph-body');
+  if (draft.step === 3) {
+    const l = draft.last, n = myLines().length;
+    body.innerHTML = `<div class="okscreen"><div class="tick">${TICK}</div><h3>C’est enregistré</h3><span class="plate"><span>${E(l.plate)}</span></span><div style="color:var(--mute);font-weight:600">${E(l.model)}</div><div>${chips(l)}</div><span class="timer">Saisie en ${draft.secs} secondes · ${n}<sup>e</sup> voiture du jour</span></div>
+      <button class="btn b-main xl" id="again">Voiture suivante</button>
+      <button class="btn b-ghost xl" id="home" style="font-size:16px;padding:13px">Retour à l’accueil</button>
+      <button class="linkb" id="undo">Je me suis trompé : annuler cette saisie</button>`;
+    $('#again').onclick = () => { draft = newDraft(); phSaisir(); };
+    $('#home').onclick = () => { draft = newDraft(); pv = 'jour'; renderPhone(); };
+    $('#undo').onclick = () => { S.lines = S.lines.filter(x => x.id !== l.id); save(); toast('Saisie annulée'); draft = { ...newDraft(), step: 2, plate: l.plate, model: l.model, types: l.types.slice(), km: l.km }; phSaisir(); };
+    return;
+  }
+  if (draft.step === 1) {
+    const ok = PLATE_RE.test(draft.plate);
+    body.innerHTML = `<div class="progress"><i class="on"></i><i></i></div>
+      <div class="wiz"><h3>Quelle voiture ?</h3><span class="stepn">1/2</span></div>
+      <button class="scan" id="scan">${ICON.cam}<b>Photographier la plaque</b><small>La plaque et le modèle se remplissent tout seuls</small></button>
+      <div class="or">ou tapez-la</div>
+      <label class="plate xl" for="pl-in"><input id="pl-in" inputmode="text" maxlength="9" placeholder="AB-123-CD" value="${E(draft.plate)}" autocomplete="off" aria-label="Plaque d’immatriculation"></label>
+      <div id="found">${ok ? `<div class="found">${ICON.check}${E(draft.model || 'Modèle à préciser')}</div>` : ''}</div>
+      <button class="btn b-main xl" id="next1" ${ok ? '' : 'disabled'}>Continuer</button>`;
+    $('#scan').onclick = () => doScan();
+    const pl = $('#pl-in');
+    pl.oninput = () => { const v = fmtPlate(pl.value); pl.value = v; draft.plate = v; const ok2 = PLATE_RE.test(v); draft.model = MODEL[v] || ''; $('#found').innerHTML = ok2 ? `<div class="found">${ICON.check}${E(draft.model || 'Modèle à préciser')}</div>` : ''; $('#next1').disabled = !ok2; };
+    pl.onkeydown = e => { if (e.key === 'Enter' && PLATE_RE.test(draft.plate)) { draft.step = 2; phSaisir(); } };
+    $('#next1').onclick = () => { draft.step = 2; phSaisir(); };
+    return;
+  }
+  const ok = draft.types.length && (!draft.types.includes('T') || draft.km != null);
+  body.innerHTML = `<div class="progress"><i class="on"></i><i class="on"></i></div>
+    <div class="wiz"><button class="back" id="back1" aria-label="Changer de voiture">←</button><span class="plate"><span>${E(draft.plate)}</span></span><span class="mdl">${E(draft.model || '')}</span><span class="stepn">2/2</span></div>
+    <div class="wiz"><h3>Qu’avez-vous fait ?</h3></div>
+    <div class="tiles">${TYPES.map(t => `<button class="tile" data-k="${t.k}" aria-pressed="${draft.types.includes(t.k)}">${pic(t.k)}${t.n}<small>${t.d}</small></button>`).join('')}</div>
+    ${draft.types.includes('T') ? `<div class="kmrow"><span>Distance du transfert</span><div class="kmb">${KM.map((k, i) => `<button data-km="${i}" aria-pressed="${draft.km === i}">${k}</button>`).join('')}</div></div>` : ''}
+    <details class="more" ${draft.more ? 'open' : ''}><summary>Une remarque ou une photo ? (facultatif)</summary><textarea id="obs-in" rows="2" placeholder="Ex. : rayure, objet oublié, voyant allumé…">${E(draft.obs)}</textarea>
+      <label class="btn b-ghost" style="margin-top:8px;justify-content:flex-start">${ICON.cam}${draft.photo ? 'Photo ajoutée ✓' : 'Ajouter une photo'}<input type="file" accept="image/*" id="ph-in" hidden></label></details>
+    <button class="btn b-main xl" id="save-l" ${ok ? '' : 'disabled'}>${ok ? 'Enregistrer' : draft.types.includes('T') ? 'Choisissez la distance' : 'Touchez ce que vous avez fait'}</button>`;
+  $('#back1').onclick = () => { draft.step = 1; phSaisir(); };
+  $$('.tile').forEach(b => b.onclick = () => toggleType(b.dataset.k));
+  $$('[data-km]').forEach(b => b.onclick = () => { draft.km = +b.dataset.km; phSaisir(); });
+  $('.more').ontoggle = e => { draft.more = e.target.open; };
+  $('#obs-in').oninput = e => draft.obs = e.target.value;
+  $('#ph-in').onchange = e => { draft.photo = !!e.target.files[0]; draft.more = true; phSaisir(); };
+  $('#save-l').onclick = saveDraft;
+}
+let autoRun = false;
+function autoplay() {
+  if (autoRun) return; autoRun = true;
+  pv = 'saisir'; draft = newDraft(); renderPhone();
+  const dev = document.querySelector('.device'); if (dev && window.innerWidth < 980) dev.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  setTimeout(() => doScan(() => {
+    setTimeout(() => toggleType('F'), 700);
+    setTimeout(() => toggleType('R'), 1300);
+    setTimeout(() => { saveDraft(); autoRun = false; }, 2100);
+  }), 600);
+}
+function sheetTable(lines, edit) {
+  const tot = k => lines.filter(l => l.types.includes(k)).length;
+  return `<div class="sheet"><table><thead><tr><th>Heure</th><th>Véhicule</th><th>Q</th><th>F</th><th>R</th><th>CI</th><th>D</th><th>T</th><th>Obs.</th></tr></thead><tbody>${lines.map(l => `<tr><td class="tnum">${hm(new Date(l.at))}</td><td><span class="plate"><span>${E(l.plate)}</span></span><br><small>${E(l.model)}</small></td>${['Q', 'F', 'R', 'C', 'D'].map(k => `<td class="c">${l.types.includes(k) ? 'X' : ''}</td>`).join('')}<td class="c">${l.types.includes('T') ? E(KM[l.km ?? 0].replace(' km', '')) : ''}</td><td>${l.obs ? E(l.obs) : ''}</td>${edit ? `<td><button class="del" data-del="${l.id}" aria-label="Supprimer ${E(l.plate)}">✕</button></td>` : ''}</tr>`).join('')}</tbody>
+    <tfoot><tr><td colspan="2">${lines.length} véhicule${lines.length > 1 ? 's' : ''}</td>${['Q', 'F', 'R', 'D', 'T'].map(k => `<td class="c">${tot(k)}</td>`).join('')}<td></td></tr></tfoot></table></div>`;
+}
+function phFiche() {
+  const lines = myLines(), f = fiche(ME.site, ME.prep), site = SITES.find(s => s.id === ME.site);
+  if (f.status === 'envoyee') {
+    $('#ph-body').innerHTML = `<div class="sent">${ICON.check}<div><b>Fiche validée et envoyée</b>Signée par ${E(f.agent)} (${E(site.agence)}) à ${E(f.at)}, transmise à 4GO.</div></div>${sheetTable(lines)}${f.sig ? `<div class="card"><div class="eyebrow">Signature de l’agence</div><img src="${f.sig}" alt="Signature" style="width:100%;max-height:120px;object-fit:contain"></div>` : ''}`;
+    return;
+  }
+  $('#ph-body').innerHTML = `<div class="eyebrow">Fiche du ${today.toLocaleDateString('fr-FR')} · ${E(ME.prep)} · ${E(site.nom)}</div>${sheetTable(lines, true)}
+    <p style="margin:0;color:var(--mute);font-size:13px">Une erreur ? Touchez ✕ pour retirer une ligne.</p>
+    <div class="card"><div class="eyebrow" style="margin-bottom:8px">Validation par l’agence</div>
+      <div class="field"><span>Nom de l’agent</span><input id="ag-in" placeholder="Ex. : M. Garnier" autocomplete="off"></div>
+      <div class="field" style="margin-top:10px"><span>Signature</span><div class="sig-wrap"><canvas id="sig"></canvas></div><button class="btn b-ghost" id="sig-clr" style="justify-self:start;padding:6px 10px;font-size:13px">Effacer</button></div>
+      <button class="btn b-main" id="send-f" style="width:100%;margin-top:10px;padding:14px">${ICON.pen}Valider et envoyer à 4GO</button>
+      <p style="margin:8px 0 0;color:var(--mute);font-size:13px">Si l’agence préfère son tampon : photo de la fiche tamponnée, envoyée automatiquement de la même façon.</p></div>`;
+  const c = $('#sig'), ctx = c.getContext('2d'); let drawing = false, drew = false;
+  const fit = () => { const r = c.getBoundingClientRect(); c.width = r.width * 2; c.height = r.height * 2; ctx.scale(2, 2); ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.strokeStyle = getComputedStyle(document.body).color; };
+  fit();
+  const pos = e => { const r = c.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  c.onpointerdown = e => { drawing = true; c.setPointerCapture(e.pointerId); ctx.beginPath(); ctx.moveTo(...pos(e)); };
+  c.onpointermove = e => { if (!drawing) return; ctx.lineTo(...pos(e)); ctx.stroke(); drew = true; };
+  c.onpointerup = () => drawing = false;
+  $('#sig-clr').onclick = () => { ctx.clearRect(0, 0, c.width, c.height); drew = false; };
+  $$('[data-del]').forEach(b => b.onclick = () => { S.lines = S.lines.filter(x => x.id !== b.dataset.del); save(); toast('Ligne retirée de la fiche'); renderPhone(); });
+  $('#send-f').onclick = () => {
+    const ag = $('#ag-in').value.trim();
+    if (!lines.length) return toast('Aucun véhicule sur la fiche');
+    if (!ag) return toast('Indiquez le nom de l’agent de l’agence');
+    if (!drew) return toast('L’agent doit signer dans le cadre');
+    S.fiches[myKey()] = { status: 'envoyee', agent: ag, at: S.clock, sig: c.toDataURL('image/png') }; save();
+    toast('Fiche envoyée à 4GO'); renderPhone();
+  };
+}
+function phPlanning() {
+  const days = [...Array(7)].map((_, i) => { const d = new Date(today); d.setDate(d.getDate() - ((today.getDay() + 6) % 7) + i); return d; });
+  const shift = (d, i) => d.getDay() === 0 ? 'Repos' : i === 5 ? '08:00–12:00' : i === 3 ? '13:00–20:00' : '08:00–12:00 · 13:30–17:00';
+  $('#ph-body').innerHTML = `<div class="remind">${ICON.msg}<div><b>Planning mis à jour hier à 18:40</b>Jeudi : décalé l’après-midi (13:00–20:00). Validé par le chef de site.</div></div>
+    <div class="week">${days.map((d, i) => `<div class="${iso(d) === TODAY ? 'today' : ''} ${i === 3 ? 'changed' : ''}"><b>${d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')} ${d.getDate()}</b><span>${shift(d, i)}</span><span class="pill ${d.getDay() === 0 ? 'p-mute' : 'p-wash'}">${d.getDay() === 0 ? '—' : 'Montélimar'}</span></div>`).join('')}</div>
+    <p style="margin:0;color:var(--mute);font-size:13px">Planning repris de Combo. Les contrats restent sur votre plateforme de signature habituelle.</p>`;
+}
+
+/* ===================== CHEF DE SITE ===================== */
+let chefSite = 'mtl';
+$('#site-sel').innerHTML = SITES.map(s => `<option value="${s.id}">${E(s.nom)}</option>`).join('');
+$('#site-sel').onchange = e => { chefSite = e.target.value; renderChef(); };
+function renderChef() {
+  const site = SITES.find(s => s.id === chefSite), lines = S.lines.filter(l => l.site === chefSite).sort((a, b) => b.at - a.at);
+  $('#site-sel').value = chefSite;
+  $('#chef-date').textContent = today.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + (chefSite === ME.site ? ' · ' + S.clock : '');
+  const ca = lines.reduce((s, l) => s + lineAmount(l), 0);
+  const sent = site.preps.filter(([p]) => fiche(chefSite, p).status === 'envoyee').length;
+  const present = site.preps.filter(([p]) => (S.badges[chefSite + '|' + p] || {}).arrivee).length;
+  $('#chef-kpis').innerHTML = [
+    ['Véhicules préparés', lines.length, 'aujourd’hui'], ['Chiffre du jour', eur(ca), 'aux tarifs en vigueur'],
+    ['Préparateurs présents', present + ' / ' + site.preps.length, 'd’après les badges'], ['Fiches envoyées', sent + ' / ' + site.preps.length, 'validées par l’agence'],
+  ].map(([a, b, c]) => `<div class="card kpi"><div class="eyebrow">${a}</div><div class="v tnum">${b}</div><div class="s">${c}</div></div>`).join('');
+  $('#chef-feed').innerHTML = lines.length ? `<table><thead><tr><th>Heure</th><th>Véhicule</th><th>Prestations</th><th>Par</th></tr></thead><tbody>${lines.map(l => `<tr><td class="tnum">${hm(new Date(l.at))}</td><td><span class="plate"><span>${E(l.plate)}</span></span><br><small style="color:var(--mute)">${E(l.model)}</small></td><td>${l.types.map(t => `<span class="pill p-wash">${E(TYPES.find(x => x.k === t).n)}${t === 'T' ? ' ' + E(KM[l.km ?? 0]) : ''}</span>`).join(' ')}${l.obs ? `<br><small style="color:var(--mute)">${E(l.obs)}</small>` : ''}</td><td>${E(l.prep)}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--mute)">Aucun véhicule saisi pour l’instant.</p>';
+  $('#chef-people').innerHTML = site.preps.map(([p, col]) => {
+    const b = S.badges[chefSite + '|' + p] || {}, f = fiche(chefSite, p), n = lines.filter(l => l.prep === p).length;
+    const st = !b.arrivee ? ['Pas encore badgé', 'p-stop'] : b.depart ? ['Parti à ' + b.depart, 'p-mute'] : b.pause && !b.reprise ? ['En pause depuis ' + b.pause, 'p-warn'] : ['Présent depuis ' + b.arrivee, 'p-ok'];
+    return `<div class="person"><div class="av" style="background:${col}">${E(p[0])}</div><div><b>${E(p)}</b><small>${n} véhicule${n > 1 ? 's' : ''} · fiche ${f.status === 'envoyee' ? 'envoyée' : 'en cours'}</small></div><span class="pill ${st[1]}">${E(st[0])}</span></div>`;
+  }).join('');
+  const al = [];
+  site.preps.forEach(([p]) => {
+    const b = S.badges[chefSite + '|' + p] || {}, now = chefSite === ME.site ? toMin(S.clock) : 10 * 60 + 30;
+    if (!b.arrivee && now > toMin(PLAN.arrivee) + 10) al.push(['a-stop', ICON.warn, `${p} n’a pas badgé son arrivée (prévue à ${PLAN.arrivee}). Rappel envoyé sur son téléphone.`]);
+    else if (b.arrivee && !b.pause && now > toMin(PLAN.pause) + 10) al.push(['a-warn', ICON.clock, `${p} n’a pas badgé sa pause de midi.`]);
+    if (fiche(chefSite, p).status !== 'envoyee' && now >= toMin(PLAN.depart)) al.push(['a-warn', ICON.warn, `Fiche de ${p} pas encore validée par l’agence.`]);
+  });
+  if (!al.length) al.push(['a-ok', ICON.check, 'Tout est en ordre sur le site.']);
+  $('#chef-alerts').innerHTML = al.map(([c, i, t]) => `<div class="alert ${c}">${i}<div>${E(t)}</div></div>`).join('');
+  const max = Math.max(1, ...TYPES.map(t => lines.filter(l => l.types.includes(t.k)).length));
+  $('#chef-types').innerHTML = TYPES.map(t => { const n = lines.filter(l => l.types.includes(t.k)).length; return `<div class="hbar"><span>${t.n}</span><div class="t"><i style="width:${n / max * 100}%"></i></div><b>${n}</b></div>`; }).join('');
+}
+$('#consigne-f').onsubmit = e => { e.preventDefault(); const v = $('#consigne-in').value.trim(); if (!v) return; (S.consignes[chefSite] = S.consignes[chefSite] || []).push({ t: v, at: chefSite === ME.site ? S.clock : hm(new Date()), by: 'Chef de site' }); save(); $('#consigne-in').value = ''; toast('Consigne envoyée aux préparateurs de ' + SITES.find(s => s.id === chefSite).nom); };
+
+/* ===================== DIRECTION ===================== */
+function todayCounts(siteId) { const c = { Q: 0, F: 0, R: 0, C: 0, D: 0, T0: 0, T1: 0, T2: 0, T3: 0 }; S.lines.filter(l => l.site === siteId).forEach(l => l.types.forEach(t => { if (t === 'T') c['T' + (l.km ?? 0)]++; else c[t]++; })); return c; }
+function monthData() {
+  const m = today.getMonth(), out = {};
+  SITES.forEach(s => out[s.id] = { n: 0, ca: 0, late: 0, days: 0 });
+  Object.entries(S.history).forEach(([d, sites]) => { if (new Date(d + 'T12:00').getMonth() !== m) return; Object.entries(sites).forEach(([id, v]) => { out[id].n += v.n; out[id].ca += countAmount(v.c); out[id].late += v.late ? 1 : 0; out[id].days++; }); });
+  SITES.forEach(s => { const n = S.lines.filter(l => l.site === s.id).length; out[s.id].n += n; out[s.id].ca += countAmount(todayCounts(s.id)); out[s.id].days++; });
+  return out;
+}
+function renderDir() {
+  const md = monthData(), tot = Object.values(md).reduce((a, v) => ({ n: a.n + v.n, ca: a.ca + v.ca, late: a.late + v.late, days: a.days + v.days }), { n: 0, ca: 0, late: 0, days: 0 });
+  const pending = SITES.reduce((s, site) => s + site.preps.filter(([p]) => fiche(site.id, p).status !== 'envoyee').length, 0);
+  $('#dir-kpis').innerHTML = [
+    ['Prestations ce mois', tot.n.toLocaleString('fr-FR'), 'tous sites'], ['Chiffre d’affaires du mois', eur(tot.ca), 'à facturer, en temps réel'],
+    ['Fiches reçues le jour même', Math.round((1 - tot.late / Math.max(1, tot.days)) * 100) + ' %', 'depuis le début du mois'], ['Fiches du jour en attente', pending, 'à valider par les agences'],
+  ].map(([a, b, c]) => `<div class="card kpi"><div class="eyebrow">${a}</div><div class="v tnum">${b}</div><div class="s">${c}</div></div>`).join('');
+  $('#dir-sites').innerHTML = `<thead><tr><th>Site</th><th class="n">Préparateurs</th><th class="n">Véhicules aujourd’hui</th><th class="n">Prestations du mois</th><th class="n">CA du mois</th><th>Fiches du jour</th></tr></thead><tbody>${SITES.map(s => {
+    const n = S.lines.filter(l => l.site === s.id).length, sent = s.preps.filter(([p]) => fiche(s.id, p).status === 'envoyee').length;
+    return `<tr><td><b>${E(s.nom)}</b></td><td class="n">${s.preps.length}</td><td class="n">${n}</td><td class="n">${md[s.id].n.toLocaleString('fr-FR')}</td><td class="n">${eur(md[s.id].ca)}</td><td><span class="pill ${sent === s.preps.length ? 'p-ok' : 'p-warn'}">${sent} / ${s.preps.length} envoyée${sent > 1 ? 's' : ''}</span></td></tr>`;
+  }).join('')}</tbody>`;
+  // Graphique : 14 derniers jours
+  const days = [...Array(14)].map((_, i) => { const d = new Date(today); d.setDate(d.getDate() - 13 + i); return d; });
+  const vals = days.map(d => { const k = iso(d); if (k === TODAY) return SITES.reduce((s, x) => s + countAmount(todayCounts(x.id)), 0); const h = S.history[k]; return h ? Object.values(h).reduce((s, v) => s + countAmount(v.c), 0) : 0; });
+  const W = 640, H = 230, L = 48, B = 26, T = 12, max = Math.max(...vals, 1), step = Math.pow(10, Math.floor(Math.log10(max))) / 2, top = Math.ceil(max / step) * step, bw = (W - L - 8) / 14;
+  let svg = ''; for (let i = 0; i <= 4; i++) { const v = top / 4 * i, y = H - B - (H - B - T) * v / top; svg += `<line class="gl" x1="${L}" x2="${W - 4}" y1="${y}" y2="${y}"/><text x="${L - 6}" y="${y + 4}" text-anchor="end">${Math.round(v)} €</text>`; }
+  days.forEach((d, i) => { const h = (H - B - T) * vals[i] / top, x = L + i * bw + 3; svg += `<rect class="bar ${iso(d) === TODAY ? 'today' : ''}" x="${x}" y="${H - B - h}" width="${bw - 6}" height="${Math.max(h, 0)}" rx="3"><title>${d.toLocaleDateString('fr-FR')} : ${eur(vals[i])}</title></rect><text x="${x + (bw - 6) / 2}" y="${H - 8}" text-anchor="middle">${d.getDate()}</text>`; });
+  $('#dir-chart').innerHTML = svg;
+  $('#tarifs').innerHTML = [['Q', 'Quick'], ['F', 'Full'], ['R', 'Refueling'], ['C', 'Check in'], ['D', 'Délestage'], ['T0', 'Transfert 0-5 km'], ['T1', 'Transfert 5-10 km'], ['T2', 'Transfert 10-15 km'], ['T3', 'Transfert 15-20 km']].map(([k, n]) => `<label for="tf-${k}">${n}</label><input id="tf-${k}" type="number" min="0" step="0.5" value="${S.tarifs[k]}" data-tf="${k}" aria-label="Tarif ${n} en euros">`).join('');
+  $$('[data-tf]').forEach(i => i.onchange = () => { S.tarifs[i.dataset.tf] = Math.max(0, +i.value || 0); save(); renderDir(); toast('Tarif mis à jour'); });
+}
+$('#export-btn').onclick = () => {
+  const md = monthData(), m = today.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const rows = [['Site', 'Prestation', 'Quantité', 'Tarif', 'Montant']];
+  SITES.forEach(s => {
+    const c = { Q: 0, F: 0, R: 0, C: 0, D: 0, T0: 0, T1: 0, T2: 0, T3: 0 };
+    Object.entries(S.history).forEach(([d, x]) => { if (new Date(d + 'T12:00').getMonth() === today.getMonth() && x[s.id]) Object.entries(x[s.id].c).forEach(([k, v]) => c[k] += v); });
+    Object.entries(todayCounts(s.id)).forEach(([k, v]) => c[k] += v);
+    const names = { Q: 'Quick', F: 'Full', R: 'Refueling', C: 'Check in', D: 'Délestage', T0: 'Transfert 0-5 km', T1: 'Transfert 5-10 km', T2: 'Transfert 10-15 km', T3: 'Transfert 15-20 km' };
+    Object.entries(c).forEach(([k, v]) => { if (v) rows.push([s.nom, names[k], v, S.tarifs[k].toFixed(2).replace('.', ','), (v * S.tarifs[k]).toFixed(2).replace('.', ',')]); });
+  });
+  const csv = rows.map(r => r.join(';')).join('\n');
+  const total = Object.values(md).reduce((s, v) => s + v.ca, 0);
+  $('#modal').innerHTML = `<div class="card" role="dialog" aria-modal="true" aria-labelledby="mx"><div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><h2 id="mx" style="font-size:26px;text-transform:uppercase">Export facturation · ${E(m)}</h2><button class="btn b-ghost" id="mclose" style="margin-left:auto">Fermer</button></div>
+    <p style="margin:0 0 10px;color:var(--mute)">Total à facturer : <b class="tnum" style="color:var(--ink)">${eur(total)}</b> · une ligne par site et par prestation, au format de votre facturation.</p><pre class="csv" id="csv">${E(csv)}</pre>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn b-main" id="mcopy">Copier pour le tableur</button><span style="color:var(--mute);font-size:13px;align-self:center">Dans l’application réelle : fichier Excel téléchargé, ou envoi automatique à la comptabilité.</span></div></div>`;
+  $('#modal').hidden = false;
+  $('#mclose').onclick = () => $('#modal').hidden = true;
+  $('#modal').onclick = e => { if (e.target.id === 'modal') $('#modal').hidden = true; };
+  $('#mcopy').onclick = async () => { try { await navigator.clipboard.writeText(csv.replace(/;/g, '\t')); toast('Export copié : collez-le dans Excel'); } catch (e) { const r = document.createRange(); r.selectNodeContents($('#csv')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Texte sélectionné : copiez-le'); } };
+};
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#modal').hidden = true; });
+
+go((location.hash || '').slice(1));
+})();
+</script>
+
+</body>
+</html>
