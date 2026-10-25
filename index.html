@@ -117,7 +117,7 @@ main{padding-block:22px 48px}
 .ph-top{background:var(--asphalt);color:var(--on-asphalt);padding:18px 18px 14px}
 .ph-top h2{font-size:26px}
 .ph-top small{color:var(--on-asphalt-mute);font-weight:600}
-.ph-scroll{flex:1;overflow:auto;padding:14px;display:grid;gap:12px;align-content:start}
+.ph-scroll{flex:1;overflow:auto;padding:14px;display:grid;gap:12px;align-content:start;grid-auto-rows:max-content;min-height:0}
 .ph-nav{display:grid;grid-template-columns:repeat(4,1fr);background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
 .ph-nav button{border:0;background:none;padding:10px 4px 12px;font-size:12px;font-weight:700;color:var(--mute);display:grid;justify-items:center;gap:3px}
 .ph-nav button .i{width:22px;height:22px}
@@ -167,7 +167,12 @@ main{padding-block:22px 48px}
 .sheet th{font-family:var(--f-display);text-transform:uppercase;font-size:13px;letter-spacing:.05em;text-align:left;padding:4px 4px;border-bottom:2px solid var(--ink)}
 .sheet td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:middle;background:color-mix(in srgb,var(--surface) 82%,transparent)}
 .sheet td.c{text-align:center;font-weight:800}
-.sheet .plate{font-size:11px}
+.sheet .plate{font-size:10.5px;white-space:nowrap}
+.sheet td{white-space:nowrap}
+.sheet td:nth-last-child(1),.sheet td:nth-last-child(2){white-space:normal}
+.sheet td small{font-size:10.5px;color:var(--mute)}
+.sheet td:last-child{font-size:11px}
+.sheet td:nth-last-child(2){min-width:84px}
 .sheet tfoot td{font-weight:800;border-top:2px solid var(--ink)}
 .sig-wrap{border:2px dashed var(--line);border-radius:12px;background:var(--surface);touch-action:none}
 canvas#sig{width:100%;height:150px;display:block}
@@ -892,7 +897,7 @@ function autoplay() {
 function sheetTable(lines, edit) {
   const tot = k => lines.filter(l => l.types.includes(k)).length;
   return `<div class="sheet"><table><thead><tr><th>Heure</th><th>Véhicule</th><th>Q</th><th>F</th><th>R</th><th>CI</th><th>D</th><th>T</th><th>Obs.</th></tr></thead><tbody>${lines.map(l => `<tr><td class="tnum">${hm(new Date(l.at))}</td><td><span class="plate"><span>${E(l.plate)}</span></span><br><small>${E(l.model)}</small></td>${['Q', 'F', 'R', 'C', 'D'].map(k => `<td class="c">${l.types.includes(k) ? 'X' : ''}</td>`).join('')}<td class="c">${l.types.includes('T') ? E(KM[l.km ?? 0].replace(' km', '')) : ''}</td><td>${l.obs ? E(l.obs) : ''}</td>${edit ? `<td><button class="del" data-del="${l.id}" aria-label="Supprimer ${E(l.plate)}">✕</button></td>` : ''}</tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="2">${lines.length} véhicule${lines.length > 1 ? 's' : ''}</td>${['Q', 'F', 'R', 'D', 'T'].map(k => `<td class="c">${tot(k)}</td>`).join('')}<td></td></tr></tfoot></table></div>`;
+    <tfoot><tr><td colspan="2">${lines.length} véhicule${lines.length > 1 ? 's' : ''}</td>${['Q', 'F', 'R', 'C', 'D', 'T'].map(k => `<td class="c">${tot(k)}</td>`).join('')}<td></td>${edit ? '<td></td>' : ''}</tr></tfoot></table></div>`;
 }
 function phFiche() {
   const lines = myLines(), f = fiche(ME.site, ME.prep), site = SITES.find(s => s.id === ME.site);
